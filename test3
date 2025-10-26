@@ -1,0 +1,503 @@
+-- bl∞3m's Brainrot Spawner + Fullscreen Loading Screen
+-- Combined version: loading screen appears on Dupe button click
+
+--== Spawner Setup ==--
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local CoreGui = game:GetService("CoreGui")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove old GUI
+if playerGui:FindFirstChild("BrainrotSpawner") then
+	playerGui:FindFirstChild("BrainrotSpawner"):Destroy()
+end
+
+-- UI corner helper
+local function uiCorner(parent, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = parent
+	return c
+end
+
+--== Spawner GUI ==--
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotSpawner"
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 50
+screenGui.Parent = playerGui
+
+local outlineFrame = Instance.new("Frame")
+outlineFrame.Size = UDim2.new(0, 520, 0, 390)
+outlineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+outlineFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+outlineFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+outlineFrame.BorderSizePixel = 0
+outlineFrame.Parent = screenGui
+uiCorner(outlineFrame, 12)
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(1, -6, 1, -6)
+mainFrame.Position = UDim2.new(0, 3, 0, 3)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = outlineFrame
+uiCorner(mainFrame, 10)
+
+-- Title bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 44)
+titleBar.BackgroundTransparency = 1
+titleBar.Parent = mainFrame
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(0.7, 0, 1, 0)
+titleText.Position = UDim2.new(0, 16, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "bl∞3m's Brainrot Spawner"
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 20
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 36, 0, 28)
+closeBtn.Position = UDim2.new(1, -44, 0, 8)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = titleBar
+uiCorner(closeBtn, 6)
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 36, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -88, 0, 8)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+minimizeBtn.Text = "—"
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Parent = titleBar
+uiCorner(minimizeBtn, 6)
+
+-- Left panel
+local leftPanel = Instance.new("Frame")
+leftPanel.Size = UDim2.new(0, 320, 0, 250)
+leftPanel.Position = UDim2.new(0, 12, 0, 60)
+leftPanel.BackgroundTransparency = 1
+leftPanel.Parent = mainFrame
+
+local listTitle = Instance.new("TextLabel")
+listTitle.Size = UDim2.new(1, 0, 0, 26)
+listTitle.Position = UDim2.new(0, 0, 0, 0)
+listTitle.BackgroundTransparency = 1
+listTitle.Text = "Your Brainrots :"
+listTitle.Font = Enum.Font.GothamBold
+listTitle.TextSize = 16
+listTitle.TextColor3 = Color3.fromRGB(235, 235, 235)
+listTitle.TextXAlignment = Enum.TextXAlignment.Left
+listTitle.Parent = leftPanel
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, -36)
+scrollFrame.Position = UDim2.new(0, 0, 0, 36)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = leftPanel
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = scrollFrame
+listLayout.Padding = UDim.new(0, 6)
+
+-- Right panel
+local rightPanel = Instance.new("Frame")
+rightPanel.Size = UDim2.new(0, 156, 0, 250)
+rightPanel.Position = UDim2.new(0, 344, 0, 60)
+rightPanel.BackgroundTransparency = 1
+rightPanel.Parent = mainFrame
+
+local dupingLabel = Instance.new("TextLabel")
+dupingLabel.Size = UDim2.new(1, 0, 0, 20)
+dupingLabel.Position = UDim2.new(0, 0, 0, 10)
+dupingLabel.BackgroundTransparency = 1
+dupingLabel.Text = "You are duping this brainrot :"
+dupingLabel.Font = Enum.Font.GothamBold
+dupingLabel.TextSize = 14
+dupingLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+dupingLabel.TextWrapped = true
+dupingLabel.TextScaled = true
+dupingLabel.Parent = rightPanel
+
+local selectedName = Instance.new("TextLabel")
+selectedName.Size = UDim2.new(1, 0, 0, 40)
+selectedName.Position = UDim2.new(0, 0, 0, 34)
+selectedName.BackgroundTransparency = 1
+selectedName.Text = "None Selected"
+selectedName.Font = Enum.Font.Gotham
+selectedName.TextSize = 16
+selectedName.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectedName.TextWrapped = true
+selectedName.Parent = rightPanel
+
+local dupeButton = Instance.new("TextButton")
+dupeButton.Size = UDim2.new(1, 0, 0, 40)
+dupeButton.Position = UDim2.new(0, 0, 1, -48)
+dupeButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+dupeButton.Text = "Dupe"
+dupeButton.Font = Enum.Font.GothamBold
+dupeButton.TextSize = 18
+dupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+dupeButton.BorderSizePixel = 0
+dupeButton.Parent = rightPanel
+uiCorner(dupeButton, 8)
+
+-- Refresh + Status + Welcome text
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Size = UDim2.new(0, 120, 0, 30)
+refreshBtn.Position = UDim2.new(0, 12, 1, -60)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+refreshBtn.Text = "Refresh"
+refreshBtn.Font = Enum.Font.Gotham
+refreshBtn.TextSize = 14
+refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+refreshBtn.BorderSizePixel = 0
+refreshBtn.Parent = mainFrame
+uiCorner(refreshBtn, 8)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -24, 0, 18)
+statusLabel.Position = UDim2.new(0, 12, 1, -25)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Idle"
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = mainFrame
+
+local infoText = Instance.new("TextLabel")
+infoText.Size = UDim2.new(0, 140, 0, 20)
+infoText.Position = UDim2.new(1, -156, 1, -25)
+infoText.BackgroundTransparency = 1
+infoText.Text = "Welcome, " .. player.DisplayName
+infoText.Font = Enum.Font.Gotham
+infoText.TextSize = 14
+infoText.TextColor3 = Color3.fromRGB(255,255,255)
+infoText.TextXAlignment = Enum.TextXAlignment.Left
+infoText.Parent = mainFrame
+
+-- Dragging
+local dragging, dragStart, startPos = false, nil, nil
+local function beginDrag(input)
+	dragging = true
+	dragStart = input.Position
+	startPos = outlineFrame.Position
+	input.Changed:Connect(function()
+		if input.UserInputState == Enum.UserInputState.End then dragging = false end
+	end)
+end
+local function updateDrag(input)
+	if not dragging then return end
+	local delta = input.Position - dragStart
+	outlineFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		beginDrag(input)
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		updateDrag(input)
+	end
+end)
+
+-- Scan
+local function scanBrainrots()
+	local found = {}
+	if workspace:FindFirstChild("Plots") then
+		for _, plot in ipairs(workspace.Plots:GetChildren()) do
+			local label = plot:FindFirstChild("PlotSign")
+				and plot.PlotSign:FindFirstChild("SurfaceGui")
+				and plot.PlotSign.SurfaceGui:FindFirstChild("Frame")
+				and plot.PlotSign.SurfaceGui.Frame:FindFirstChild("TextLabel")
+			if label and label.Text:find(player.DisplayName) then
+				local podiums = plot:FindFirstChild("AnimalPodiums")
+				if podiums then
+					for _, podium in ipairs(podiums:GetChildren()) do
+						local base = podium:FindFirstChild("Base")
+						local spawnPart = base and base:FindFirstChild("Spawn")
+						local attachment = spawnPart and spawnPart:FindFirstChild("Attachment")
+						local overhead = attachment and attachment:FindFirstChild("AnimalOverhead")
+						if overhead then
+							local name = overhead:FindFirstChild("DisplayName") and overhead.DisplayName.Text or "Unknown"
+							table.insert(found, name)
+						end
+					end
+				end
+			end
+		end
+	end
+	return found
+end
+
+-- Populate
+local selectedItem, selectedButton = nil, nil
+local function clearList()
+	for _, child in ipairs(scrollFrame:GetChildren()) do
+		if child:IsA("TextButton") then child:Destroy() end
+	end
+end
+local function populateList(items)
+	clearList()
+	for _, itemName in ipairs(items) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, -6, 0, 34)
+		btn.BackgroundColor3 = Color3.fromRGB(60, 60, 66)
+		btn.Text = itemName
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 15
+		btn.BorderSizePixel = 0
+		btn.Parent = scrollFrame
+		uiCorner(btn, 6)
+		btn.MouseButton1Click:Connect(function()
+			if selectedButton then selectedButton.BackgroundColor3 = Color3.fromRGB(60, 60, 66) end
+			selectedButton = btn
+			selectedItem = itemName
+			btn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+			selectedName.Text = itemName
+		end)
+	end
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #items * 40)
+end
+
+-- Refresh & Dupe
+local function refresh()
+	statusLabel.Text = "Status: Scanning..."
+	local list = scanBrainrots()
+	populateList(list)
+	statusLabel.Text = ("Status: %d brainrot(s) found"):format(#list)
+end
+refreshBtn.MouseButton1Click:Connect(refresh)
+
+--== Combine with Loading Screen ==--
+dupeButton.MouseButton1Click:Connect(function()
+	if not selectedItem then return end
+
+	-- Hide spawner GUI
+	screenGui.Enabled = false
+
+	--== Loading Screen GUI ==--
+	ReplicatedFirst:RemoveDefaultLoadingScreen()
+
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "BrainrotLoadingScreen"
+	ScreenGui.IgnoreGuiInset = true
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.Parent = CoreGui
+
+	local Background = Instance.new("Frame")
+	Background.Size = UDim2.new(1, 0, 1, 0)
+	Background.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	Background.BorderColor3 = Color3.fromRGB(255, 255, 255)
+	Background.BorderSizePixel = 1
+	Background.Parent = ScreenGui
+
+	local UICorner = Instance.new("UICorner")
+	UICorner.CornerRadius = UDim.new(0, 0)
+	UICorner.Parent = Background
+
+	-- Title
+	local Title = Instance.new("TextLabel")
+	Title.Text = "Processing Brainrot Duplication"
+	Title.Size = UDim2.new(1, 0, 0, 60)
+	Title.Position = UDim2.new(0, 0, 0.2, 0)
+	Title.BackgroundTransparency = 1
+	Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+	Title.Font = Enum.Font.GothamBold
+	Title.TextScaled = false
+	Title.TextSize = 48
+	Title.Parent = Background
+
+	-- Status
+	local StatusText = Instance.new("TextLabel")
+	StatusText.Text = "Decrypting brainrot unique id's..."
+	StatusText.Size = UDim2.new(1, -40, 0, 40)
+	StatusText.Position = UDim2.new(0, 20, 0.2, 80)
+	StatusText.BackgroundTransparency = 1
+	StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	StatusText.Font = Enum.Font.Gotham
+	StatusText.TextScaled = true
+	StatusText.TextWrapped = true
+	StatusText.Parent = Background
+
+	-- Progress Bar
+	local ProgressFrame = Instance.new("Frame")
+	ProgressFrame.Size = UDim2.new(0.6, 0, 0, 30)
+	ProgressFrame.Position = UDim2.new(0.2, 0, 0.7, 0)
+	ProgressFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	ProgressFrame.BorderSizePixel = 0
+	ProgressFrame.Parent = Background
+
+	local ProgressCorner = Instance.new("UICorner")
+	ProgressCorner.CornerRadius = UDim.new(0, 10)
+	ProgressCorner.Parent = ProgressFrame
+
+	local Fill = Instance.new("Frame")
+	Fill.Size = UDim2.new(0, 0, 1, 0)
+	Fill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	Fill.BorderSizePixel = 0
+	Fill.Parent = ProgressFrame
+
+	local FillCorner = Instance.new("UICorner")
+	FillCorner.CornerRadius = UDim.new(0, 10)
+	FillCorner.Parent = Fill
+
+	local PercentText = Instance.new("TextLabel")
+	PercentText.Size = UDim2.new(1, 0, 1, 0)
+	PercentText.BackgroundTransparency = 1
+	PercentText.Text = "0%"
+	PercentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	PercentText.Font = Enum.Font.GothamSemibold
+	PercentText.TextScaled = true
+	PercentText.Parent = ProgressFrame
+
+	-- Particles
+	local ParticleFrame = Instance.new("Frame")
+	ParticleFrame.Size = UDim2.new(1, 0, 1, 0)
+	ParticleFrame.BackgroundTransparency = 1
+	ParticleFrame.ClipsDescendants = true
+	ParticleFrame.Parent = Background
+
+	for i = 1, 60 do
+		local dot = Instance.new("Frame")
+		dot.Size = UDim2.new(0, math.random(3, 7), 0, math.random(3, 7))
+		dot.Position = UDim2.new(math.random(), 0, math.random(), 0)
+		dot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+		dot.BackgroundTransparency = 0.6
+		dot.BorderSizePixel = 0
+		dot.Parent = ParticleFrame
+
+		TweenService:Create(dot, TweenInfo.new(math.random(8, 15), Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), {
+			Position = UDim2.new(dot.Position.X.Scale + (math.random() - 0.5) / 4, 0, dot.Position.Y.Scale - 0.15, 0)
+		}):Play()
+	end
+
+	-- Spinner
+	local Spinner = Instance.new("Frame")
+	Spinner.Size = UDim2.new(0, 40, 0, 40)
+	Spinner.Position = UDim2.new(0.5, -20, 0.55, 0)
+	Spinner.BackgroundTransparency = 1
+	Spinner.Parent = Background
+
+	local spinnerDots = {}
+	for i = 1, 10 do
+		local d = Instance.new("Frame")
+		d.Size = UDim2.new(0, 8, 0, 8)
+		d.Position = UDim2.new(0.5, math.cos(math.rad(i * 36)) * 20 - 4, 0.5, math.sin(math.rad(i * 36)) * 20 - 4)
+		d.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+		d.BorderSizePixel = 0
+		d.Parent = Spinner
+		table.insert(spinnerDots, d)
+	end
+
+	task.spawn(function()
+		local index = 1
+		while ScreenGui.Parent do
+			for i, d in ipairs(spinnerDots) do
+				d.BackgroundTransparency = (i == index) and 0 or 0.8
+			end
+			index = (index % #spinnerDots) + 1
+			task.wait(0.08)
+		end
+	end)
+
+	-- Progress + Rejoin
+	local startTime = tick()
+	local totalTime = 35
+	local done = false
+
+	RunService.RenderStepped:Connect(function()
+		local elapsed = tick() - startTime
+		local progress = math.clamp(elapsed / totalTime, 0, 1)
+		Fill.Size = UDim2.new(progress, 0, 1, 0)
+		PercentText.Text = string.format("%d%%", math.floor(progress * 100))
+
+		if progress < 0.34 then
+			StatusText.Text = "Decrypting brainrot unique id's..."
+		elseif progress < 0.67 then
+			StatusText.Text = "Bypassing anti-cheats..."
+		elseif progress < 1 then
+			StatusText.Text = "Finalizing..."
+		end
+
+		if progress == 1 and not done then
+			done = true
+			StatusText.Text = "Please press the rejoin button below to complete the steps..."
+
+			local rejoinButton = Instance.new("TextButton")
+			rejoinButton.Size = UDim2.new(0, 240, 0, 50)
+			rejoinButton.Position = UDim2.new(0.5, -120, 0.8, 0)
+			rejoinButton.Text = "Rejoin Server"
+			rejoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			rejoinButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+			rejoinButton.Font = Enum.Font.GothamBold
+			rejoinButton.TextScaled = true
+			rejoinButton.Parent = Background
+
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 12)
+			corner.Parent = rejoinButton
+
+			rejoinButton.MouseButton1Click:Connect(function()
+				TeleportService:Teleport(game.PlaceId, player)
+			end)
+		end
+	end)
+
+	-- Discord link
+	local DiscordText = Instance.new("TextLabel")
+	DiscordText.Size = UDim2.new(1, 0, 0, 24)
+	DiscordText.Position = UDim2.new(0, 0, 0.95, 0)
+	DiscordText.BackgroundTransparency = 1
+	DiscordText.Text = "discord.gg/frwk2b48xM"
+	DiscordText.TextColor3 = Color3.fromRGB(200,200,200)
+	DiscordText.Font = Enum.Font.Gotham
+	DiscordText.TextScaled = true
+	DiscordText.TextWrapped = true
+	DiscordText.Parent = Background
+end)
+
+-- Minimize logic
+local minimized = false
+local fullSize = outlineFrame.Size
+
+minimizeBtn.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		TweenService:Create(outlineFrame, TweenInfo.new(0.4), {Size = UDim2.new(0, 520, 0, 60)}):Play()
+		leftPanel.Visible, rightPanel.Visible, refreshBtn.Visible, statusLabel.Visible, infoText.Visible = false, false, false, false, false
+	else
+		TweenService:Create(outlineFrame, TweenInfo.new(0.4), {Size = fullSize}):Play()
+		leftPanel.Visible, rightPanel.Visible, refreshBtn.Visible, statusLabel.Visible, infoText.Visible = true, true, true, true, true
+	end
+end)
+
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+refresh()
+print("bl∞3m's Brainrot Spawner Loaded!")
